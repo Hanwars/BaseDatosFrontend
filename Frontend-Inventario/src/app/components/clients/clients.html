@@ -1,0 +1,204 @@
+<!--Toast-->
+@if (toast.show) {
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div class="toast show text-white" [ngClass]="toast.typeClass">
+      <div class="d-flex">
+        <div class="toast-body">
+          {{ toast.message }}
+        </div>
+
+        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+      </div>
+    </div>
+  </div>
+}
+
+<!--CRUD-->
+<div class="container mt-4 mb-4">
+  <h3 class="text-center mb-4">Administración de Clientes</h3>
+
+  <div class="row mb-3">
+    <div class="col-md-6 mx-auto">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Buscar clientes..."
+        [value]="search"
+        (input)="search = $event.target.value"
+      />
+    </div>
+  </div>
+  @if (currentUser()?.role == 1) {
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-success" (click)="openModal(null)">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+  }
+  <p>Total clientes: {{ clients.length }}</p>
+  <table class="table table-bordered table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Telefono</th>
+        <th>Email</th>
+        @if (currentUser()?.role == 1) {
+          <th class="pe-0 me-2 actions-col">Acciones</th>
+        }
+      </tr>
+    </thead>
+
+    <tbody>
+      @for (client of clients; track client.client_id) {
+        @if (
+          search === '' ||
+          client.client_id?.toString().toLowerCase() === search ||
+          client.name?.toLowerCase().includes(search.toLowerCase()) ||
+          client.contact_phone?.toString().toLowerCase().includes(search.toLowerCase()) ||
+          client.contact_email?.toLowerCase().includes(search.toLowerCase())
+        ) {
+          <tr>
+            <td>{{ client.client_id }}</td>
+            <td>{{ client.name }}</td>
+            <td>{{ client.contact_phone }}</td>
+            <td>{{ client.contact_email }}</td>
+            @if (currentUser()?.role == 1) {
+              <td class="pe-0 me-2 actions-col">
+                <button class="btn btn-warning btn-sm me-2" (click)="openModal(client)">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+
+                <button class="btn btn-danger btn-sm" (click)="openDeleteModal(client)">
+                  <i class="fa-solid fa-trash text-white"></i>
+                </button>
+              </td>
+            }
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal Update y Create -->
+<div class="modal fade show d-block" *ngIf="isModalOpen">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form
+        #clientForm="ngForm"
+        (ngSubmit)="selectedClient?.client_id ? updateClient(selectedClient) : createClient(selectedClient)"
+      >
+        <div class="modal-header">
+          <h5 class="modal-title">
+            {{ selectedClient?.client_id ? 'Editar Cliente' : 'Nuevo Cliente' }}
+          </h5>
+
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Nombre</label>
+              <input
+                type="text"
+                class="form-control"
+                name="name"
+                required
+                #name="ngModel"
+                pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+                [(ngModel)]="selectedClient.name"
+              />
+
+              @if (!name.valid && name.touched) {
+                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              }
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Telefono</label>
+              <input
+                type="number"
+                class="form-control"
+                name="contact_phone"
+                required
+                #contact_phone="ngModel"
+                pattern="^\+?[1-9]\d{1,14}$"
+                [(ngModel)]="selectedClient.contact_phone"
+              />
+              @if (!contact_phone.valid && contact_phone.touched) {
+                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              }
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Email</label>
+              <input
+                type="text"
+                class="form-control"
+                name="contact_email"
+                required
+                #contact_email="ngModel"
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                [(ngModel)]="selectedClient.contact_email"
+              />
+              @if (!contact_email.valid && contact_email.touched) {
+                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+
+          @if (selectedClient?.client_id) {
+            <button type="submit" class="btn btn-primary" [disabled]="clientForm.invalid">
+              Editar
+            </button>
+          } @else {
+            <button type="submit" class="btn btn-primary" [disabled]="clientForm.invalid">
+              Guardar
+            </button>
+          }
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop fade show" *ngIf="isModalOpen"></div>
+
+<!--Modal Delete-->
+@if (isDeleteModalOpen) {
+  <div class="modal fade show d-block">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirmar eliminación</h5>
+          <button class="btn-close btn-close-white" (click)="closeDeleteModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <p>
+            ¿Seguro que quieres eliminar el cliente
+            <strong>{{ clientToDelete?.name }}</strong
+            >?
+          </p>
+          <p class="text-danger mb-0">Esta acción no se puede deshacer.</p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
+
+          <button class="btn btn-danger" (click)="confirmDelete(clientToDelete.client_id)">
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop fade show"></div>
+}

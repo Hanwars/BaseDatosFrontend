@@ -26,7 +26,12 @@ export class UserService {
     return this._http.post(this.url + 'register', data, { headers: this.headers });
   }
 
-  updateUser(user: User): Observable<any> {
+  getProfile(): Observable<any> {
+    return this._http.get(this.url + 'profile', { headers: this.headers });
+  }
+
+  // Perfil: { name, email, current_password?, new_password? }
+  updateUser(user: any): Observable<any> {
     return this._http.put(this.url + 'profile', user, { headers: this.headers });
   }
 

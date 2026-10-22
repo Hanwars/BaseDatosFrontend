@@ -1,0 +1,118 @@
+<!--Toast-->
+@if (toast.show) {
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div class="toast show text-white" [ngClass]="toast.typeClass">
+      <div class="d-flex">
+        <div class="toast-body">
+          {{ toast.message }}
+        </div>
+
+        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+      </div>
+    </div>
+  </div>
+}
+
+<div class="container mt-4 mb-4">
+  <h3 class="text-center mb-4">Perfil de Usuario</h3>
+
+  @if (profile) {
+    <div class="col-md-6 mx-auto">
+      <form #profileForm="ngForm" (ngSubmit)="updateProfile()">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Datos personales</h5>
+
+            <div class="mb-3">
+              <label class="form-label">Nombre</label>
+              <input
+                type="text"
+                class="form-control"
+                name="name"
+                required
+                #name="ngModel"
+                pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+                [(ngModel)]="profile.name"
+              />
+              @if (!name.valid && name.touched) {
+                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              }
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input
+                type="text"
+                class="form-control"
+                name="email"
+                required
+                #email="ngModel"
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                [(ngModel)]="profile.email"
+              />
+              @if (!email.valid && email.touched) {
+                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              }
+              <small class="text-secondary">Es el correo con el que inicias sesión.</small>
+            </div>
+
+            <hr />
+            <h5 class="card-title mb-1">Cambiar contraseña</h5>
+            <p class="text-secondary small">Déjalo vacío si no quieres cambiarla.</p>
+
+            <div class="mb-3">
+              <label class="form-label">Contraseña actual</label>
+              <input
+                type="password"
+                class="form-control"
+                name="current_password"
+                [required]="wantsPasswordChange"
+                #current_password="ngModel"
+                [(ngModel)]="profile.current_password"
+              />
+              @if (!current_password.valid && current_password.touched) {
+                <small class="invalid-feedback d-block">
+                  Escribe tu contraseña actual para cambiarla.
+                </small>
+              }
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Nueva contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                name="new_password"
+                [(ngModel)]="profile.new_password"
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Confirmar nueva contraseña</label>
+              <input
+                type="password"
+                class="form-control"
+                name="confirm_password"
+                [class.is-invalid]="passwordsMismatch"
+                [(ngModel)]="profile.confirm_password"
+              />
+              @if (passwordsMismatch) {
+                <small class="invalid-feedback d-block"> Las contraseñas no coinciden. </small>
+              }
+            </div>
+          </div>
+
+          <div class="card-footer d-flex justify-content-end">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="profileForm.invalid || passwordsMismatch"
+            >
+              Guardar cambios
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  }
+</div>

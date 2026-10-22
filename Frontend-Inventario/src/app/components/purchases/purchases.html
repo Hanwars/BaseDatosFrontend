@@ -1,0 +1,419 @@
+<!--Toast-->
+@if (toast.show) {
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div class="toast show text-white" [ngClass]="toast.typeClass">
+      <div class="d-flex">
+        <div class="toast-body">
+          {{ toast.message }}
+        </div>
+
+        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+      </div>
+    </div>
+  </div>
+}
+
+<!--CRUD-->
+<div class="container mt-4 mb-4">
+  <h3 class="text-center mb-4">Administración de Compras</h3>
+
+  <div class="row mb-3">
+    <div class="col-md-6 mx-auto">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Buscar compras..."
+        [value]="search"
+        (input)="search = $event.target.value"
+      />
+    </div>
+  </div>
+  @if (currentUser()?.role == 1) {
+    <div class="d-flex justify-content-end">
+      <button class="btn btn-success" (click)="openModal(null)">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+  }
+  <p>Total compras: {{ purchases.length }}</p>
+  <table class="table table-bordered table-hover">
+    <thead class="table-dark">
+      <tr>
+        <th>ID</th>
+        <th>Fecha</th>
+        <th>Proveedor</th>
+        <th>Usuario</th>
+        <th>Subtotal</th>
+        <th>Descuento</th>
+        <th>IVA</th>
+        <th>Total</th>
+        <th class="pe-0 me-2 actions-col">Acciones</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      @for (purchase of purchases; track purchase.purchase_id) {
+        @if (
+          search === '' ||
+          purchase.purchase_id?.toString().toLowerCase() === search ||
+          purchase.supplier_name?.toLowerCase().includes(search.toLowerCase()) ||
+          purchase.user_name?.toLowerCase().includes(search.toLowerCase()) ||
+          (purchase.date | date: 'dd/MM/yyyy' : 'UTC')?.includes(search)
+        ) {
+          <tr>
+            <td>{{ purchase.purchase_id }}</td>
+            <td>{{ purchase.date | date: 'dd/MM/yyyy' : 'UTC' }}</td>
+            <td>{{ purchase.supplier_name }}</td>
+            <td>{{ purchase.user_name }}</td>
+            <td>₡{{ purchase.subtotal | number: '1.2-2' }}</td>
+            <td>₡{{ purchase.discount | number: '1.2-2' }}</td>
+            <td>{{ purchase.iva }}%</td>
+            <td class="fw-bold">₡{{ purchase.total | number: '1.2-2' }}</td>
+            <td class="pe-0 me-2 actions-col">
+              <button class="btn btn-primary btn-sm me-2" (click)="openDetailsModal(purchase)">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              @if (currentUser()?.role == 1) {
+                <button class="btn btn-warning btn-sm me-2" (click)="openModal(purchase)">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+
+                <button class="btn btn-danger btn-sm" (click)="openDeleteModal(purchase)">
+                  <i class="fa-solid fa-trash text-white"></i>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal Update y Create -->
+<div class="modal fade show d-block" *ngIf="isModalOpen">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form #purchaseForm="ngForm" (ngSubmit)="savePurchase()">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            {{ selectedPurchase?.purchase_id ? 'Editar Compra' : 'Nueva Compra' }}
+          </h5>
+
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-12 mb-3">
+              <label class="form-label">Proveedor</label>
+              <select
+                class="form-select"
+                name="supplier"
+                required
+                [(ngModel)]="selectedPurchase.supplier_id"
+                #supplier="ngModel"
+              >
+                <option [ngValue]="null" disabled hidden>Seleccione un proveedor</option>
+                <option *ngFor="let s of suppliers" [ngValue]="s.supplier_id">
+                  {{ s.company_name }}
+                </option>
+              </select>
+              @if (!supplier.valid && supplier.touched) {
+                <small class="invalid-feedback d-block"> Debes seleccionar un proveedor. </small>
+              }
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Fecha</label>
+              <input
+                type="date"
+                class="form-control"
+                name="date"
+                required
+                #date="ngModel"
+                [(ngModel)]="selectedPurchase.date"
+              />
+              @if (!date.valid && date.touched) {
+                <small class="invalid-feedback d-block"> La fecha no puede quedar vacía. </small>
+              }
+            </div>
+
+            <div class="col-md-6 mb-3">
+              <label class="form-label">IVA (%)</label>
+              <input
+                type="number"
+                class="form-control"
+                name="iva"
+                required
+                min="0"
+                max="100"
+                #iva="ngModel"
+                [(ngModel)]="selectedPurchase.iva"
+              />
+              @if (!iva.valid && iva.touched) {
+                <small class="invalid-feedback d-block"> El IVA debe estar entre 0 y 100. </small>
+              }
+            </div>
+          </div>
+          @if (!selectedPurchase?.purchase_id) {
+            <p class="text-secondary mb-0">
+              Al guardar se abrirá la compra para agregarle los insumos.
+            </p>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+
+          @if (selectedPurchase?.purchase_id) {
+            <button type="submit" class="btn btn-primary" [disabled]="purchaseForm.invalid">
+              Editar
+            </button>
+          } @else {
+            <button type="submit" class="btn btn-primary" [disabled]="purchaseForm.invalid">
+              Guardar
+            </button>
+          }
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop fade show" *ngIf="isModalOpen"></div>
+
+<!--Modal Delete-->
+@if (isDeleteModalOpen) {
+  <div class="modal fade show d-block">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirmar eliminación</h5>
+          <button class="btn-close btn-close-white" (click)="closeDeleteModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <p>
+            ¿Seguro que quieres eliminar la compra
+            <strong>#{{ purchaseToDelete?.purchase_id }}</strong> de
+            <strong>{{ purchaseToDelete?.supplier_name }}</strong>?
+          </p>
+          <p class="mb-1">Se eliminarán sus insumos y se restará el stock que sumó.</p>
+          <p class="text-danger mb-0">Esta acción no se puede deshacer.</p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
+
+          <button class="btn btn-danger" (click)="confirmDelete(purchaseToDelete.purchase_id)">
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop fade show"></div>
+}
+
+<!--Modal Details-->
+@if (isDetailsModalOpen) {
+  <div class="modal fade show d-block">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalles de la Compra #{{ purchaseDetails?.purchase_id }}</h5>
+          <button class="btn-close" (click)="closeDetailsModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <p class="mb-1"><strong>Proveedor:</strong> {{ purchaseDetails?.supplier_name }}</p>
+            </div>
+            <div class="col-md-4">
+              <p class="mb-1">
+                <strong>Fecha:</strong> {{ purchaseDetails?.date | date: 'dd/MM/yyyy' : 'UTC' }}
+              </p>
+            </div>
+            <div class="col-md-4">
+              <p class="mb-1"><strong>Usuario:</strong> {{ purchaseDetails?.user_name }}</p>
+            </div>
+          </div>
+
+          <!-- Formulario para agregar / editar un insumo -->
+          @if (currentUser()?.role == 1 && selectedDetail) {
+            <form #detailForm="ngForm" (ngSubmit)="saveDetail()" class="row g-2 align-items-end mb-3">
+              <div class="col-md-4">
+                <label class="form-label">Insumo</label>
+                <select
+                  class="form-select"
+                  name="supply"
+                  required
+                  [(ngModel)]="selectedDetail.supply_id"
+                  (ngModelChange)="onSupplyChange()"
+                >
+                  <option [ngValue]="null" disabled hidden>Seleccione un insumo</option>
+                  <option *ngFor="let s of supplies" [ngValue]="s.supply_id">
+                    {{ s.name }} (stock: {{ s.stock }})
+                  </option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Cantidad</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  name="quantity"
+                  required
+                  min="1"
+                  [(ngModel)]="selectedDetail.quantity"
+                />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Precio unitario</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  name="unit_price"
+                  required
+                  min="0"
+                  [(ngModel)]="selectedDetail.unit_price"
+                />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Descuento (%)</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  name="discount"
+                  min="0"
+                  max="100"
+                  [(ngModel)]="selectedDetail.discount"
+                />
+              </div>
+              <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-success flex-grow-1" [disabled]="detailForm.invalid">
+                  @if (selectedDetail.detail_id) {
+                    <i class="fa-solid fa-floppy-disk"></i>
+                  } @else {
+                    <i class="fa-solid fa-plus"></i>
+                  }
+                </button>
+                @if (selectedDetail.detail_id) {
+                  <button type="button" class="btn btn-secondary" (click)="resetDetailForm()">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                }
+              </div>
+            </form>
+          }
+
+          <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Insumo</th>
+                <th>Cantidad</th>
+                <th>Precio unitario</th>
+                <th>Descuento</th>
+                <th>Subtotal</th>
+                @if (currentUser()?.role == 1) {
+                  <th class="pe-0 me-2 actions-col">Acciones</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (detail of details; track detail.detail_id) {
+                <tr [class.table-warning]="selectedDetail?.detail_id === detail.detail_id">
+                  <td>{{ detail.supply_name }}</td>
+                  <td>{{ detail.quantity }}</td>
+                  <td>₡{{ detail.unit_price | number: '1.2-2' }}</td>
+                  <td>{{ detail.discount }}%</td>
+                  <td>₡{{ detail.subtotal | number: '1.2-2' }}</td>
+                  @if (currentUser()?.role == 1) {
+                    <td class="pe-0 me-2 actions-col">
+                      <button class="btn btn-warning btn-sm me-2" (click)="editDetail(detail)">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                      </button>
+                      <button class="btn btn-danger btn-sm" (click)="openDeleteDetailModal(detail)">
+                        <i class="fa-solid fa-trash text-white"></i>
+                      </button>
+                    </td>
+                  }
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="text-center text-secondary">
+                    Esta compra todavía no tiene insumos.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <div class="d-flex justify-content-end">
+            <table class="table table-sm w-auto mb-0">
+              <tbody>
+                <tr>
+                  <th class="pe-4">Subtotal</th>
+                  <td class="text-end">₡{{ purchaseDetails?.subtotal | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <th class="pe-4">Descuento</th>
+                  <td class="text-end">- ₡{{ purchaseDetails?.discount | number: '1.2-2' }}</td>
+                </tr>
+                <tr>
+                  <th class="pe-4">IVA</th>
+                  <td class="text-end">{{ purchaseDetails?.iva }}%</td>
+                </tr>
+                <tr>
+                  <th class="pe-4">Total</th>
+                  <td class="text-end fw-bold">₡{{ purchaseDetails?.total | number: '1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDetailsModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop fade show"></div>
+}
+
+<!--Modal Delete Detail (encima del modal de detalles)-->
+@if (isDeleteDetailModalOpen) {
+  <div class="modal fade show d-block" style="z-index: 1070">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirmar eliminación</h5>
+          <button class="btn-close btn-close-white" (click)="closeDeleteDetailModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          <p>
+            ¿Seguro que quieres quitar
+            <strong>{{ detailToDelete?.supply_name }}</strong> de la compra?
+          </p>
+          <p class="mb-0">Se restarán {{ detailToDelete?.quantity }} unidades del stock.</p>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDeleteDetailModal()">Cancelar</button>
+
+          <button class="btn btn-danger" (click)="confirmDeleteDetail(detailToDelete.detail_id)">
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop fade show" style="z-index: 1065"></div>
+}
