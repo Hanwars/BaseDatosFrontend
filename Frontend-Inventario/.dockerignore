@@ -1,5 +1,6 @@
 .git
 .gitignore
+.gitattributes
 .vscode
 .idea
 node_modules
@@ -9,3 +10,4 @@ coverage
 *.log
 .env
 .env.*
+README.md

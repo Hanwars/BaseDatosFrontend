@@ -1,10 +1,14 @@
 server {
-    listen 8080;
+    # ${PORT}: Render lo define (10000 por defecto); en Northflank/local vale 8080.
+    listen ${PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
 
     server_tokens off;
+    # Detrás del proxy de Northflank no se debe exponer el puerto interno en redirecciones.
+    absolute_redirect off;
+    port_in_redirect off;
     client_max_body_size 10m;
 
     gzip on;
@@ -16,11 +20,17 @@ server {
         application/javascript application/xml application/rss+xml
         image/svg+xml font/ttf font/otf application/wasm;
 
-    # API: el navegador llama a /api/v1; Nginx reenvía la petición al backend.
+    # API: el navegador llama a /api/v1/...; Nginx reenvía la petición al backend.
+    # Variables (las sustituye envsubst al arrancar):
+    #   API_SCHEME   http (red interna) o https (URL pública, p. ej. Render)
+    #   API_UPSTREAM host[:puerto] del backend, sin esquema
+    #   API_HOST     nombre de host que se envía en la cabecera Host (en Render debe ser el del backend)
     location /api/ {
-        proxy_pass http://${API_UPSTREAM};
+        proxy_pass ${API_SCHEME}://${API_UPSTREAM};
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_ssl_server_name on;
+        proxy_ssl_name ${API_HOST};
+        proxy_set_header Host ${API_HOST};
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -29,31 +39,32 @@ server {
         proxy_read_timeout 120s;
     }
 
+    # Health check del propio frontend (no depende del backend).
     location = /health {
         access_log off;
         default_type text/plain;
         return 200 "ok\n";
     }
 
-    # Archivos con hash de Angular: caché larga. index.html se revalida.
+    # Archivos con hash de Angular: caché larga.
     location ~* \.(?:js|css|woff2?|ttf|eot)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
+        add_header Cache-Control "public, max-age=31536000, immutable";
         try_files $uri =404;
     }
 
     location ~* \.(?:svg|png|jpg|jpeg|gif|ico|webp)$ {
-        expires 7d;
-        add_header Cache-Control "public";
+        add_header Cache-Control "public, max-age=604800";
         try_files $uri =404;
     }
 
+    # index.html siempre se revalida para tomar nuevas versiones.
     location = /index.html {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
 
-    # Rutas de Angular (router) vuelven a index.html.
+    # Rutas del router de Angular vuelven a index.html.
     location / {
         try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
     }
 }
