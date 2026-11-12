@@ -43,7 +43,10 @@ COPY --from=build /site/ /usr/share/nginx/html/
 #   API_SCHEME=https
 #   API_UPSTREAM=mi-backend.onrender.com
 #   API_HOST=mi-backend.onrender.com
+# NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 hace que la imagen de Nginx calcule
+# NGINX_LOCAL_RESOLVERS (DNS del contenedor) y lo use la plantilla en "resolver".
 ENV PORT=8080 \
+    NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
     API_SCHEME=http \
     API_UPSTREAM=backend:8080 \
     API_HOST=backend
