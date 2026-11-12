@@ -1,4 +1,5 @@
-<!--Toast-->
+
+<!-- Toast -->
 @if (toast.show) {
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
     <div class="toast show text-white" [ngClass]="toast.typeClass">
@@ -7,162 +8,277 @@
           {{ toast.message }}
         </div>
 
-        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          (click)="toast.show = false">
+        </button>
       </div>
     </div>
   </div>
 }
 
-<!--CRUD-->
+<!-- CRUD -->
 <div class="container mt-4 mb-4">
   <h3 class="text-center mb-4">Administración de Clientes</h3>
 
+  <!-- Buscador -->
   <div class="row mb-3">
     <div class="col-md-6 mx-auto">
       <input
         type="text"
         class="form-control"
         placeholder="Buscar clientes..."
-        [value]="search"
-        (input)="search = $event.target.value"
+        name="search"
+        [(ngModel)]="search"
       />
     </div>
   </div>
+
   @if (currentUser()?.role == 1) {
     <div class="d-flex justify-content-end">
-      <button class="btn btn-success" (click)="openModal(null)">
+      <button
+        type="button"
+        class="btn btn-success"
+        (click)="openModal(null)">
         <i class="fa-solid fa-plus"></i>
       </button>
     </div>
   }
+
   <p>Total clientes: {{ clients.length }}</p>
-  <table class="table table-bordered table-hover">
-    <thead class="table-dark">
-      <tr>
-        <th>ID</th>
-        <th>Nombre</th>
-        <th>Telefono</th>
-        <th>Email</th>
-        @if (currentUser()?.role == 1) {
-          <th class="pe-0 me-2 actions-col">Acciones</th>
-        }
-      </tr>
-    </thead>
 
-    <tbody>
-      @for (client of clients; track client.client_id) {
-        @if (
-          search === '' ||
-          client.client_id?.toString().toLowerCase() === search ||
-          client.name?.toLowerCase().includes(search.toLowerCase()) ||
-          client.contact_phone?.toString().toLowerCase().includes(search.toLowerCase()) ||
-          client.contact_email?.toLowerCase().includes(search.toLowerCase())
-        ) {
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+
+          @if (currentUser()?.role == 1) {
+            <th class="pe-0 me-2 actions-col">Acciones</th>
+          }
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (client of clients; track client.client_id) {
+
+          @if (
+            search.trim() === '' ||
+            (client.client_id?.toString() ?? '').includes(search.trim().toLowerCase()) ||
+            (client.name ?? '').toLowerCase().includes(search.trim().toLowerCase()) ||
+            (client.contact_phone?.toString() ?? '').toLowerCase().includes(search.trim().toLowerCase()) ||
+            (client.contact_email ?? '').toLowerCase().includes(search.trim().toLowerCase())
+          ) {
+
+            <tr>
+              <td>{{ client.client_id }}</td>
+              <td>{{ client.name }}</td>
+              <td>{{ client.contact_phone }}</td>
+              <td>{{ client.contact_email }}</td>
+
+              @if (currentUser()?.role == 1) {
+                <td class="pe-0 me-2 actions-col">
+
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm me-2"
+                    (click)="openModal(client)">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-danger btn-sm"
+                    (click)="openDeleteModal(client)">
+                    <i class="fa-solid fa-trash text-white"></i>
+                  </button>
+
+                </td>
+              }
+            </tr>
+
+          }
+        } @empty {
+
           <tr>
-            <td>{{ client.client_id }}</td>
-            <td>{{ client.name }}</td>
-            <td>{{ client.contact_phone }}</td>
-            <td>{{ client.contact_email }}</td>
-            @if (currentUser()?.role == 1) {
-              <td class="pe-0 me-2 actions-col">
-                <button class="btn btn-warning btn-sm me-2" (click)="openModal(client)">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-
-                <button class="btn btn-danger btn-sm" (click)="openDeleteModal(client)">
-                  <i class="fa-solid fa-trash text-white"></i>
-                </button>
-              </td>
-            }
+            <td
+              [attr.colspan]="currentUser()?.role == 1 ? 5 : 4"
+              class="text-center text-muted py-4">
+              <i class="fa-solid fa-users me-2"></i>
+              Aún no hay clientes registrados.
+            </td>
           </tr>
+
         }
-      }
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Modal Update y Create -->
 <div class="modal fade show d-block" *ngIf="isModalOpen">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
+
       <form
         #clientForm="ngForm"
-        (ngSubmit)="selectedClient?.client_id ? updateClient(selectedClient) : createClient(selectedClient)"
-      >
+        (ngSubmit)="
+          selectedClient?.client_id
+            ? updateClient(selectedClient)
+            : createClient(selectedClient)
+        ">
+
         <div class="modal-header">
           <h5 class="modal-title">
             {{ selectedClient?.client_id ? 'Editar Cliente' : 'Nuevo Cliente' }}
           </h5>
 
-          <button type="button" class="btn-close" (click)="closeModal()"></button>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeModal()">
+          </button>
         </div>
 
         <div class="modal-body">
           <div class="row">
+
+            <!-- Nombre -->
             <div class="col-md-12 mb-3">
               <label class="form-label">Nombre</label>
+
               <input
                 type="text"
                 class="form-control"
                 name="name"
                 required
+                minlength="3"
+                maxlength="300"
+                autocomplete="name"
                 #name="ngModel"
-                pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+                pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+(?:[ .,'&()/-]+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+)*$"
                 [(ngModel)]="selectedClient.name"
               />
 
-              @if (!name.valid && name.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              @if (name.invalid && (name.touched || clientForm.submitted)) {
+
+                <small class="invalid-feedback d-block">
+
+                  @if (name.errors?.['required']) {
+                    El nombre del cliente es obligatorio.
+                  } @else if (name.errors?.['minlength']) {
+                    El nombre debe tener al menos 3 caracteres.
+                  } @else if (name.errors?.['maxlength']) {
+                    El nombre no puede superar los 300 caracteres.
+                  } @else if (name.errors?.['pattern']) {
+                    Formato inválido. Utiliza letras, números y separadores permitidos.
+                  }
+
+                </small>
               }
             </div>
 
+            
+            <!-- Teléfono -->
             <div class="col-md-6 mb-3">
-              <label class="form-label">Telefono</label>
+              <label class="form-label">Teléfono</label>
+
               <input
-                type="number"
+                type="tel"
                 class="form-control"
                 name="contact_phone"
                 required
-                #contact_phone="ngModel"
-                pattern="^\+?[1-9]\d{1,14}$"
+                maxlength="8"
+                autocomplete="tel"
+                inputmode="numeric"
+                #contactPhone="ngModel"
+                pattern="^[0-9]{1,8}$"
                 [(ngModel)]="selectedClient.contact_phone"
               />
-              @if (!contact_phone.valid && contact_phone.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (contactPhone.invalid && (contactPhone.touched || clientForm.submitted)) {
+
+                <small class="invalid-feedback d-block">
+
+                  @if (contactPhone.errors?.['required']) {
+                    El teléfono es obligatorio.
+                  } @else if (contactPhone.errors?.['maxlength']) {
+                    El teléfono no puede superar los 8 dígitos.
+                  } @else if (contactPhone.errors?.['pattern']) {
+                    Formato inválido. Utiliza solamente números, con un máximo de 8 dígitos.
+                  }
+
+                </small>
               }
             </div>
 
+
+            <!-- Email -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Email</label>
+
               <input
-                type="text"
+                type="email"
                 class="form-control"
                 name="contact_email"
                 required
-                #contact_email="ngModel"
-                pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                minlength="6"
+                maxlength="254"
+                autocomplete="email"
+                #contactEmail="ngModel"
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"
                 [(ngModel)]="selectedClient.contact_email"
               />
-              @if (!contact_email.valid && contact_email.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (contactEmail.invalid && (contactEmail.touched || clientForm.submitted)) {
+
+                <small class="invalid-feedback d-block">
+
+                  @if (contactEmail.errors?.['required']) {
+                    El correo electrónico es obligatorio.
+                  } @else if (contactEmail.errors?.['minlength']) {
+                    El correo debe tener al menos 6 caracteres.
+                  } @else if (contactEmail.errors?.['maxlength']) {
+                    El correo no puede superar los 254 caracteres.
+                  } @else if (
+                    contactEmail.errors?.['email'] ||
+                    contactEmail.errors?.['pattern']
+                  ) {
+                    Formato inválido. Ingresa un correo electrónico válido.
+                  }
+
+                </small>
               }
             </div>
+
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
 
-          @if (selectedClient?.client_id) {
-            <button type="submit" class="btn btn-primary" [disabled]="clientForm.invalid">
-              Editar
-            </button>
-          } @else {
-            <button type="submit" class="btn btn-primary" [disabled]="clientForm.invalid">
-              Guardar
-            </button>
-          }
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeModal()">
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="clientForm.invalid">
+
+            {{ selectedClient?.client_id ? 'Editar' : 'Guardar' }}
+
+          </button>
+
         </div>
+
       </form>
     </div>
   </div>
@@ -170,32 +286,51 @@
 
 <div class="modal-backdrop fade show" *ngIf="isModalOpen"></div>
 
-<!--Modal Delete-->
+<!-- Modal Delete -->
 @if (isDeleteModalOpen) {
   <div class="modal fade show d-block">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
+
         <div class="modal-header bg-danger text-white">
           <h5 class="modal-title">Confirmar eliminación</h5>
-          <button class="btn-close btn-close-white" (click)="closeDeleteModal()"></button>
+
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            (click)="closeDeleteModal()">
+          </button>
         </div>
 
         <div class="modal-body">
           <p>
             ¿Seguro que quieres eliminar el cliente
-            <strong>{{ clientToDelete?.name }}</strong
-            >?
+            <strong>{{ clientToDelete?.name }}</strong>?
           </p>
-          <p class="text-danger mb-0">Esta acción no se puede deshacer.</p>
+
+          <p class="text-danger mb-0">
+            Esta acción no se puede deshacer.
+          </p>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
 
-          <button class="btn btn-danger" (click)="confirmDelete(clientToDelete.client_id)">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDeleteModal()">
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-danger"
+            (click)="confirmDelete(clientToDelete.client_id)">
             Eliminar
           </button>
+
         </div>
+
       </div>
     </div>
   </div>

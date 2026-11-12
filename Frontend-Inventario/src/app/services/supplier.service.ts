@@ -7,20 +7,17 @@ import { Supplier } from '../models/supplier';
 @Injectable({ providedIn: 'root' })
 export class SupplierService {
   private url: string;
-  private headers: any;
-  private token: any;
+  private headers: HttpHeaders;
+
   constructor(private _http: HttpClient) {
     this.url = enviroment.apiUrl;
-    this.token = sessionStorage.getItem('token');
-    this.headers = new HttpHeaders()
-      .set('Content-Type', 'application/json')
-      .set('Authorization', `Bearer ${this.token}`);
+    this.headers = new HttpHeaders().set('Content-Type', 'application/json');
   }
 
   createSupplier(supplier: Supplier): Observable<any> {
-    let data = JSON.stringify(supplier);
-    return this._http.post(this.url + 'suppliers', data, { headers: this.headers });
+    return this._http.post(this.url + 'suppliers', supplier, { headers: this.headers });
   }
+
   getSuppliers(): Observable<any> {
     return this._http.get(this.url + 'suppliers', { headers: this.headers });
   }

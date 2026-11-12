@@ -1,7 +1,10 @@
+
 <div class="col-md-12 mt-4">
-  <!--Sweet Alert-->
+  <!-- Sweet Alert -->
   @if (status === 0) {
-    <div class="alert alert-danger mt-3" role="alert">Usuario y/o contraseña incorrectos.</div>
+    <div class="alert alert-danger mt-3" role="alert">
+      Usuario y/o contraseña incorrectos.
+    </div>
   } @else if (status === 1) {
     <div class="alert alert-warning mt-3" role="alert">
       Error inesperado del servidor. Inténtelo más tarde.
@@ -11,44 +14,84 @@
   <div class="col-md-4 mx-auto">
     <form #loginForm="ngForm" (ngSubmit)="onSubmit(loginForm)">
       <h3 class="text-center">Inicio de sesión</h3>
-      <div class="form-group">
+
+      <!-- Email -->
+      <div class="form-group mb-3">
         <label for="email">Email</label>
+
         <input
-          type="text"
+          type="email"
           class="form-control"
           id="email"
           name="email"
-          #email="ngModel"
-          [(ngModel)]="user.email"
           required
+          minlength="6"
+          maxlength="150"
+          email
+          pattern="^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"
+          #email="ngModel"
+          autocomplete="email"
+          [(ngModel)]="user.email"
         />
-        @if (!email.valid && email.touched) {
-          <small class="invalid-feedback d-block">No puede quedar vacio!</small>
+
+        @if (email.invalid && email.touched) {
+          <small class="invalid-feedback d-block">
+            @if (email.errors?.['required']) {
+              El correo es obligatorio.
+            } @else if (email.errors?.['minlength']) {
+              El correo debe tener al menos 6 caracteres.
+            } @else if (email.errors?.['maxlength']) {
+              El correo no puede superar los 150 caracteres.
+            } @else {
+              Formato inválido.
+            }
+          </small>
         }
       </div>
-      <div class="form-group">
+
+      <!-- Contraseña -->
+      <div class="form-group mb-3">
         <label for="password">Contraseña</label>
+
         <input
           type="password"
           class="form-control"
           id="password"
           name="password"
-          #password="ngModel"
-          [(ngModel)]="user.password"
           required
+          maxlength="100"
+          #password="ngModel"
+          autocomplete="current-password"
+          [(ngModel)]="user.password"
         />
-        @if (!password.valid && password.touched) {
-          <small class="invalid-feedback d-block">No puede quedar vacio!</small>
+
+        @if (password.invalid && password.touched) {
+          <small class="invalid-feedback d-block">
+            @if (password.errors?.['required']) {
+              La contraseña es obligatoria.
+            } @else if (password.errors?.['maxlength']) {
+              La contraseña no puede superar los 100 caracteres.
+            }
+          </small>
         }
       </div>
+
       <div class="d-flex justify-content-between mt-3">
-        <input
+        <button
           class="btn btn-primary"
           type="submit"
-          value="Iniciar"
           [disabled]="loginForm.invalid"
-        />
-        <button [routerLink]="['/home']" type="button" class="btn btn-secondary">Cancelar</button>
+        >
+          Iniciar sesión
+        </button>
+
+        <button
+          [routerLink]="['/home']"
+          type="button"
+          class="btn btn-secondary"
+        >
+          Cancelar
+        </button>
       </div>
     </form>
   </div>

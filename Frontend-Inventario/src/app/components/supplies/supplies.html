@@ -1,3 +1,4 @@
+
 <!--Toast-->
 @if (toast.show) {
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
@@ -7,7 +8,11 @@
           {{ toast.message }}
         </div>
 
-        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          (click)="toast.show = false"
+        ></button>
       </div>
     </div>
   </div>
@@ -24,25 +29,33 @@
         class="form-control"
         placeholder="Buscar insumo..."
         [value]="search"
-        (input)="search = $event.target.value"
+        (input)="search = $any($event.target).value"
       />
     </div>
   </div>
 
   @if (currentUser()?.role == 1) {
     <div class="d-flex justify-content-end">
-      <button class="btn btn-success" (click)="openModal(null)">
+      <button type="button" class="btn btn-success" (click)="openModal(null)">
         <i class="fa-solid fa-plus"></i>
       </button>
     </div>
   }
+
   <p>Total insumos: {{ supplies.length }}</p>
+
+  @if (supplies.length === 0) {
+    <div class="text-center py-4">
+      <p class="text-muted mb-0">Aún no hay insumos registrados.</p>
+    </div>
+  }
+
   <div class="row g-4 mb-5">
     @for (supply of supplies; track supply.supply_id) {
       @if (
         search === '' ||
-        supply.supply_id.toString().includes(search) ||
-        supply.name.toLowerCase().includes(search.toLowerCase())
+        supply.supply_id?.toString().includes(search) ||
+        supply.name?.toLowerCase().includes(search.toLowerCase())
       ) {
         <div class="col-md-4 col-lg-3">
           <div class="card h-100 shadow-sm">
@@ -50,7 +63,7 @@
               *ngIf="imageUrls[supply.image]"
               [src]="imageUrls[supply.image]"
               class="card-img-top"
-              alt="{{ supply.name }}"
+              [alt]="supply.name"
               style="height: 220px; object-fit: cover"
             />
 
@@ -62,17 +75,30 @@
 
             <div class="card-footer border-0">
               <div class="d-grid gap-2">
-                <button class="btn btn-primary" (click)="openDetailsModal(supply)">
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  (click)="openDetailsModal(supply)"
+                >
                   <i class="fa-solid fa-eye me-2"></i>
                   Ver detalles
                 </button>
+
                 @if (currentUser()?.role == 1) {
                   <div class="d-flex justify-content-center gap-2">
-                    <button class="btn btn-warning" (click)="openModal(supply)">
+                    <button
+                      type="button"
+                      class="btn btn-warning"
+                      (click)="openModal(supply)"
+                    >
                       <i class="fa-solid fa-pen-to-square"></i>
                     </button>
 
-                    <button class="btn btn-danger" (click)="openDeleteModal(supply)">
+                    <button
+                      type="button"
+                      class="btn btn-danger"
+                      (click)="openDeleteModal(supply)"
+                    >
                       <i class="fa-solid fa-trash text-white"></i>
                     </button>
                   </div>
@@ -96,27 +122,48 @@
             {{ selectedSupply?.supply_id ? 'Editar Insumo' : 'Nuevo Insumo' }}
           </h5>
 
-          <button type="button" class="btn-close" (click)="closeModal()"></button>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeModal()"
+          ></button>
         </div>
 
         <div class="modal-body">
           <div class="row">
+
+            <!-- Nombre -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Nombre</label>
+
               <input
                 type="text"
                 class="form-control"
                 name="name"
                 required
+                minlength="3"
+                maxlength="300"
                 #name="ngModel"
-                pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+                pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+(?:[ .,'&()/-]+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+)*$"
                 [(ngModel)]="selectedSupply.name"
               />
-              @if (!name.valid && name.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (name.invalid && name.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (name.errors?.['required']) {
+                    Este campo es obligatorio.
+                  } @else if (name.errors?.['minlength']) {
+                    Debe contener al menos 3 caracteres.
+                  } @else if (name.errors?.['maxlength']) {
+                    No puede superar los 300 caracteres.
+                  } @else if (name.errors?.['pattern']) {
+                    Formato inválido.
+                  }
+                </small>
               }
             </div>
 
+            <!-- Tipo -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Tipo</label>
 
@@ -127,18 +174,25 @@
                 [(ngModel)]="selectedSupply.type"
                 #type="ngModel"
               >
-                <option [ngValue]="null" disabled hidden>Seleccione un tipo de insumo</option>
-                <option [ngValue]="'gastronomico'">Gastronomico</option>
-                <option [ngValue]="'fisico'">Fisico</option>
+                <option [ngValue]="null" disabled hidden>
+                  Seleccione un tipo de insumo
+                </option>
+
+                <option [ngValue]="'gastronomico'">Gastronómico</option>
+                <option [ngValue]="'fisico'">Físico</option>
               </select>
-              @if (!type.valid && type.touched) {
+
+              @if (type.invalid && type.touched) {
                 <small class="invalid-feedback d-block">
                   Debes seleccionar un tipo de insumo.
                 </small>
               }
             </div>
+
+            <!-- Categoría -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Categoría</label>
+
               <select
                 class="form-select"
                 name="category"
@@ -146,42 +200,67 @@
                 [(ngModel)]="selectedSupply.category_id"
                 #category="ngModel"
               >
-                <option [ngValue]="null" disabled hidden>Seleccione una categoría</option>
+                <option [ngValue]="null" disabled hidden>
+                  Seleccione una categoría
+                </option>
 
                 <option *ngFor="let c of categories" [ngValue]="c.category_id">
                   {{ c.name }}
                 </option>
               </select>
 
-              @if (!category.valid && category.touched) {
-                <small class="invalid-feedback d-block"> Debes seleccionar una categoría </small>
+              @if (category.invalid && category.touched) {
+                <small class="invalid-feedback d-block">
+                  Debes seleccionar una categoría.
+                </small>
               }
             </div>
+
+            <!-- Cantidad -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Cantidad</label>
+
               <input
                 type="number"
                 class="form-control"
                 name="quantity"
                 required
+                min="0"
+                step="1"
                 #quantity="ngModel"
                 [(ngModel)]="selectedSupply.stock"
               />
-              @if (!quantity.valid && quantity.touched) {
-                <small class="invalid-feedback d-block"> La cantidad no puede quedar vacío. </small>
+
+              @if (quantity.invalid && quantity.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (quantity.errors?.['required']) {
+                    La cantidad es obligatoria.
+                  } @else if (quantity.errors?.['min']) {
+                    La cantidad no puede ser negativa.
+                  } @else {
+                    Ingrese una cantidad entera válida.
+                  }
+                </small>
               }
             </div>
-            <div class="mb-3" *ngIf="selectedSupply?.image">
+
+            <!-- Imagen actual -->
+            <div class="col-12 mb-3" *ngIf="selectedSupply?.image">
               <label class="form-label d-block">Imagen actual</label>
+
               <img
                 [src]="imageUrls[selectedSupply.image]"
                 class="img-thumbnail"
                 style="max-height: 180px"
+                alt="Imagen actual del insumo"
               />
             </div>
-            <div class="mb-3">
-              @if (selectedSupply.supply_id) {
+
+            <!-- Imagen -->
+            <div class="col-12 mb-3">
+              @if (selectedSupply?.supply_id) {
                 <label class="form-label">Cambiar imagen (opcional)</label>
+
                 <input
                   type="file"
                   class="form-control"
@@ -191,6 +270,7 @@
                 />
               } @else {
                 <label class="form-label">Imagen</label>
+
                 <input
                   type="file"
                   class="form-control"
@@ -200,38 +280,69 @@
                   required
                   [class.is-invalid]="imageTouched && !selectedFile"
                 />
-                @if (imageTouched || !selectedFile) {
-                  <small class="invalid-feedback d-block"> La imagen no puede quedar vacía. </small>
+
+                @if (imageTouched && !selectedFile) {
+                  <small class="invalid-feedback d-block">
+                    Debes seleccionar una imagen.
+                  </small>
                 }
               }
             </div>
 
+            <!-- Precio -->
             <div class="col-md-12 mb-3">
               <label class="form-label">Precio</label>
+
               <input
                 type="number"
                 class="form-control"
                 name="price"
                 required
+                min="0"
+                step="0.01"
                 #price="ngModel"
                 [(ngModel)]="selectedSupply.price"
               />
-              @if (!price.valid && price.touched) {
-                <small class="invalid-feedback d-block"> La cantidad no puede quedar vacío. </small>
+
+              @if (price.invalid && price.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (price.errors?.['required']) {
+                    El precio es obligatorio.
+                  } @else if (price.errors?.['min']) {
+                    El precio no puede ser negativo.
+                  } @else {
+                    Ingrese un precio válido.
+                  }
+                </small>
               }
             </div>
+
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeModal()"
+          >
+            Cancelar
+          </button>
 
           @if (selectedSupply?.supply_id) {
-            <button type="submit" class="btn btn-primary" [disabled]="supplyForm.invalid">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="supplyForm.invalid"
+            >
               Editar
             </button>
           } @else {
-            <button type="submit" class="btn btn-primary" [disabled]="supplyForm.invalid">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="supplyForm.invalid || !selectedFile"
+            >
               Guardar
             </button>
           }
@@ -250,22 +361,36 @@
       <div class="modal-content">
         <div class="modal-header bg-danger text-white">
           <h5 class="modal-title">Confirmar eliminación</h5>
-          <button class="btn-close btn-close-white" (click)="closeDeleteModal()"></button>
+
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            (click)="closeDeleteModal()"
+          ></button>
         </div>
 
         <div class="modal-body">
           <p>
             ¿Seguro que quieres eliminar el insumo
-            <strong>{{ supplyToDelete?.name }}</strong
-            >?
+            <strong>{{ supplyToDelete?.name }}</strong>?
           </p>
-          <p class="text-danger mb-0">Esta acción no se puede deshacer.</p>
+
+          <p class="text-danger mb-0">
+            Esta acción no se puede deshacer.
+          </p>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDeleteModal()"
+          >
+            Cancelar
+          </button>
 
           <button
+            type="button"
             class="btn btn-danger"
             (click)="confirmDelete(supplyToDelete.supply_id, supplyToDelete.image)"
           >
@@ -286,7 +411,12 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Detalles del Insumo</h5>
-          <button class="btn-close" (click)="closeDetailsModal()"></button>
+
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeDetailsModal()"
+          ></button>
         </div>
 
         <div class="modal-body">
@@ -297,6 +427,7 @@
                 [src]="imageUrls[supplyDetails?.image]"
                 class="img-fluid rounded shadow-sm"
                 style="max-height: 250px; object-fit: cover"
+                alt="Imagen del insumo"
               />
             </div>
 
@@ -304,21 +435,33 @@
               <h4 class="mb-3">{{ supplyDetails?.name }}</h4>
 
               <p><strong>ID:</strong> {{ supplyDetails?.supply_id }}</p>
+
               @if (supplyDetails?.type === 'fisico') {
-                <p><strong>Tipo:</strong> Fisico</p>
+                <p><strong>Tipo:</strong> Físico</p>
               } @else {
-                <p><strong>Tipo:</strong> Gastronomico</p>
+                <p><strong>Tipo:</strong> Gastronómico</p>
               }
 
-              <p><strong>Categoría:</strong> {{ supplyDetails?.category.name }}</p>
+              <p>
+                <strong>Categoría:</strong>
+                {{ supplyDetails?.category?.name || 'No disponible' }}
+              </p>
+
               <p><strong>Cantidad:</strong> {{ supplyDetails?.stock }}</p>
+
               <p><strong>Precio:</strong> {{ supplyDetails?.price }}</p>
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDetailsModal()">Cerrar</button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDetailsModal()"
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
-<!--Toast-->
+
+<!-- Toast -->
 @if (toast.show) {
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
     <div class="toast show text-white" [ngClass]="toast.typeClass">
@@ -7,40 +8,52 @@
           {{ toast.message }}
         </div>
 
-        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          (click)="toast.show = false">
+        </button>
       </div>
     </div>
   </div>
 }
 
-<!--CRUD-->
+<!-- CRUD -->
 <div class="container mt-4 mb-4">
-  <h3 class="text-center mb-4">Administración de Categorias</h3>
+  <h3 class="text-center mb-4">Administración de Categorías</h3>
 
+  <!-- Buscador -->
   <div class="row mb-3">
     <div class="col-md-6 mx-auto">
       <input
         type="text"
         class="form-control"
-        placeholder="Buscar categoria..."
-        [value]="search"
-        (input)="search = $event.target.value"
+        placeholder="Buscar categoría..."
+        name="search"
+        [(ngModel)]="search"
       />
     </div>
   </div>
+
   @if (currentUser()?.role == 1) {
     <div class="d-flex justify-content-end">
-      <button class="btn btn-success" (click)="openModal(null)">
+      <button
+        type="button"
+        class="btn btn-success"
+        (click)="openModal(null)">
         <i class="fa-solid fa-plus"></i>
       </button>
     </div>
   }
-  <p>Total categorias: {{ categories.length }}</p>
+
+  <p>Total categorías: {{ categories.length }}</p>
+
   <table class="table table-bordered table-hover">
     <thead class="table-dark">
       <tr>
         <th>ID</th>
         <th>Nombre</th>
+
         @if (currentUser()?.role == 1) {
           <th class="pe-0 me-2 actions-col">Acciones</th>
         }
@@ -51,25 +64,41 @@
       @for (category of categories; track category.category_id) {
         @if (
           search === '' ||
-          category.category_id.toString().toLowerCase() === search ||
-          category.name.toLowerCase().includes(search.toLowerCase())
+          (category.category_id?.toString() ?? '').includes(search.toLowerCase()) ||
+          (category.name ?? '').toLowerCase().includes(search.toLowerCase())
         ) {
           <tr>
             <td>{{ category.category_id }}</td>
             <td>{{ category.name }}</td>
+
             @if (currentUser()?.role == 1) {
               <td class="pe-0 me-2 actions-col">
-                <button class="btn btn-warning btn-sm me-2" (click)="openModal(category)">
+
+                <button
+                  type="button"
+                  class="btn btn-warning btn-sm me-2"
+                  (click)="openModal(category)">
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
 
-                <button class="btn btn-danger btn-sm" (click)="openDeleteModal(category)">
+                <button
+                  type="button"
+                  class="btn btn-danger btn-sm"
+                  (click)="openDeleteModal(category)">
                   <i class="fa-solid fa-trash text-white"></i>
                 </button>
+
               </td>
             }
           </tr>
         }
+      } @empty {
+        <tr>
+          <td [attr.colspan]="currentUser()?.role == 1 ? 3 : 2"
+              class="text-center text-muted py-4">
+            Aún no hay categorías registradas.
+          </td>
+        </tr>
       }
     </tbody>
   </table>
@@ -79,85 +108,136 @@
 <div class="modal fade show d-block" *ngIf="isModalOpen">
   <div class="modal-dialog">
     <div class="modal-content">
+
       <form
         #categoryForm="ngForm"
         (ngSubmit)="
           selectedCategory?.category_id
             ? updateCategory(selectedCategory)
             : createCategory(selectedCategory)
-        "
-      >
+        ">
+
         <div class="modal-header">
           <h5 class="modal-title">
-            {{ selectedCategory?.category_id ? 'Editar Categoria' : 'Nueva Categoria' }}
+            {{ selectedCategory?.category_id ? 'Editar Categoría' : 'Nueva Categoría' }}
           </h5>
 
-          <button type="button" class="btn-close" (click)="closeModal()"></button>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeModal()">
+          </button>
         </div>
 
         <div class="modal-body">
+
+          <!-- Nombre -->
           <div class="mb-3">
             <label class="form-label">Nombre</label>
+
             <input
               type="text"
               class="form-control"
               name="name"
               required
+              minlength="3"
+              maxlength="100"
               #name="ngModel"
-              pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+              pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$"
               [(ngModel)]="selectedCategory.name"
             />
 
-            @if (!name.valid && name.touched) {
-              <small class="invalid-feedback d-block"> Formato invalido!</small>
+            @if (name.invalid && (name.touched || categoryForm.submitted)) {
+              <small class="invalid-feedback d-block">
+
+                @if (name.errors?.['required']) {
+                  El nombre de la categoría es obligatorio.
+                } @else if (name.errors?.['minlength']) {
+                  El nombre debe tener al menos 3 caracteres.
+                } @else if (name.errors?.['maxlength']) {
+                  El nombre no puede superar los 100 caracteres.
+                } @else if (name.errors?.['pattern']) {
+                  Formato inválido. Utiliza solamente letras, espacios, guiones o apóstrofes.
+                }
+
+              </small>
             }
           </div>
+
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
 
-          @if (selectedCategory?.category_id) {
-            <button type="submit" class="btn btn-primary" [disabled]="categoryForm.invalid">
-              Editar
-            </button>
-          } @else {
-            <button type="submit" class="btn btn-primary" [disabled]="categoryForm.invalid">
-              Guardar
-            </button>
-          }
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeModal()">
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="categoryForm.invalid">
+
+            {{ selectedCategory?.category_id ? 'Editar' : 'Guardar' }}
+
+          </button>
+
         </div>
+
       </form>
     </div>
   </div>
 </div>
 
-<!--Modal Delete-->
+<div class="modal-backdrop fade show" *ngIf="isModalOpen"></div>
+
+<!-- Modal Delete -->
 @if (isDeleteModalOpen) {
   <div class="modal fade show d-block">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
+
         <div class="modal-header bg-danger text-white">
           <h5 class="modal-title">Confirmar eliminación</h5>
-          <button class="btn-close btn-close-white" (click)="closeDeleteModal()"></button>
+
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            (click)="closeDeleteModal()">
+          </button>
         </div>
 
         <div class="modal-body">
           <p>
-            ¿Seguro que quieres eliminar la categoria
-            <strong>{{ categoryToDelete?.name }}</strong
-            >?
+            ¿Seguro que quieres eliminar la categoría
+            <strong>{{ categoryToDelete?.name }}</strong>?
           </p>
-          <p class="text-danger mb-0">Esta acción no se puede deshacer.</p>
+
+          <p class="text-danger mb-0">
+            Esta acción no se puede deshacer.
+          </p>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
 
-          <button class="btn btn-danger" (click)="confirmDelete(categoryToDelete.category_id)">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDeleteModal()">
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-danger"
+            (click)="confirmDelete(categoryToDelete.category_id)">
             Eliminar
           </button>
+
         </div>
+
       </div>
     </div>
   </div>

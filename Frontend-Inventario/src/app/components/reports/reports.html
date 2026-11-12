@@ -1,0 +1,563 @@
+
+<!-- Toast -->
+@if (toast.show) {
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div class="toast show text-white" [ngClass]="toast.typeClass">
+      <div class="d-flex">
+        <div class="toast-body">{{ toast.message }}</div>
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          (click)="toast.show = false">
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<div class="container mt-4 mb-5">
+  <h3 class="text-center mb-4">Reportes y Administración</h3>
+
+  <!-- Navegación -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeTab === 'inventory'"
+        [disabled]="loading"
+        (click)="setTab('inventory')">
+        Inventario Actual
+      </button>
+    </li>
+
+    <li class="nav-item">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeTab === 'sales'"
+        [disabled]="loading"
+        (click)="setTab('sales')">
+        Ventas por Cliente
+      </button>
+    </li>
+
+    <li class="nav-item">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="activeTab === 'discounts'"
+        [disabled]="loading"
+        (click)="setTab('discounts')">
+        Movimientos Descuento
+      </button>
+    </li>
+
+    @if (currentUser()?.role == 1) {
+      <li class="nav-item">
+        <button
+          type="button"
+          class="nav-link"
+          [class.active]="activeTab === 'audit'"
+          [disabled]="loading"
+          (click)="setTab('audit')">
+          Auditoría
+        </button>
+      </li>
+
+      <li class="nav-item">
+        <button
+          type="button"
+          class="nav-link"
+          [class.active]="activeTab === 'backup'"
+          [disabled]="loading"
+          (click)="setTab('backup')">
+          Respaldos
+        </button>
+      </li>
+    }
+  </ul>
+
+  <!-- Cargando -->
+  @if (loading) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="mt-2 text-muted">Cargando información...</p>
+    </div>
+  }
+
+  <!-- ===================================================== -->
+  <!-- INVENTARIO -->
+  <!-- ===================================================== -->
+
+  @if (!loading && activeTab === 'inventory') {
+
+    @if (sectionState.inventory === 'unavailable') {
+      <div class="alert alert-info text-center">
+        <i class="fa-solid fa-circle-info me-2"></i>
+        El reporte de inventario aún no está disponible.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-primary" (click)="loadInventory()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else if (sectionState.inventory === 'error') {
+      <div class="alert alert-danger text-center">
+        No fue posible cargar el inventario.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-danger" (click)="loadInventory()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else {
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <p class="mb-0">Inventario actual de insumos</p>
+
+        <button class="btn btn-sm btn-outline-primary" (click)="loadInventory()">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Insumo</th>
+              <th>Tipo</th>
+              <th>Categoría</th>
+              <th>Existencia</th>
+              <th>Precio</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (item of inventory; track item.supply_id) {
+              <tr [class.table-warning]="isLowStock(item)">
+                <td>{{ item.supply_id }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.type }}</td>
+                <td>{{ item.category_name }}</td>
+                <td>{{ item.stock }}</td>
+                <td>₡{{ item.price | number: '1.2-2' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getStockClass(item)">
+                    {{ item.stock_status }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                  <i class="fa-solid fa-box-open me-2"></i>
+                  Aún no hay insumos registrados para mostrar.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ===================================================== -->
+  <!-- VENTAS POR CLIENTE -->
+  <!-- ===================================================== -->
+
+  @if (!loading && activeTab === 'sales') {
+
+    @if (sectionState.sales === 'unavailable') {
+      <div class="alert alert-info text-center">
+        <i class="fa-solid fa-circle-info me-2"></i>
+        El reporte de ventas por cliente aún no está disponible.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-primary" (click)="loadSales()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else if (sectionState.sales === 'error') {
+      <div class="alert alert-danger text-center">
+        No fue posible cargar las ventas por cliente.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-danger" (click)="loadSales()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else {
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <p class="mb-0">Resumen de ventas agrupadas por cliente</p>
+
+        <button class="btn btn-sm btn-outline-primary" (click)="loadSales()">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>ID Cliente</th>
+              <th>Cliente</th>
+              <th>Cantidad de ventas</th>
+              <th>Total vendido</th>
+              <th>Última venta</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of salesByClient; track row.client_id) {
+              <tr>
+                <td>{{ row.client_id }}</td>
+                <td>{{ row.client_name }}</td>
+                <td>{{ row.sales_count }}</td>
+                <td>₡{{ row.total_sales | number: '1.2-2' }}</td>
+                <td>
+                  @if (row.last_sale_date) {
+                    {{ row.last_sale_date | date: 'dd/MM/yyyy' : 'UTC' }}
+                  } @else {
+                    <span class="text-muted">Sin ventas</span>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                  <i class="fa-solid fa-chart-column me-2"></i>
+                  Aún no hay clientes registrados para generar este reporte.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ===================================================== -->
+  <!-- MOVIMIENTOS DE DESCUENTO -->
+  <!-- ===================================================== -->
+
+  @if (!loading && activeTab === 'discounts') {
+
+    @if (sectionState.discounts === 'unavailable') {
+      <div class="alert alert-info text-center">
+        El reporte de movimientos de descuento aún no está disponible.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-primary" (click)="loadDiscounts()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else if (sectionState.discounts === 'error') {
+      <div class="alert alert-danger text-center">
+        No fue posible cargar los movimientos de descuento.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-danger" (click)="loadDiscounts()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else {
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <p class="mb-0">Movimientos relacionados con descuentos</p>
+
+        <button class="btn btn-sm btn-outline-primary" (click)="loadDiscounts()">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>ID Movimiento</th>
+              <th>Tipo de movimiento</th>
+              <th>Subtotal</th>
+              <th>Descuento</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of discounts; track $index) {
+              <tr>
+                <td>{{ row.movement_id }}</td>
+                <td>
+                  <span class="badge"
+                    [ngClass]="row.type === 'venta' ? 'bg-primary' : 'bg-secondary'">
+                    {{ row.type }}
+                  </span>
+                </td>
+                <td>₡{{ row.subtotal | number: '1.2-2' }}</td>
+                <td>{{ row.discount | number: '1.2-2' }}%</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                  Aún no hay movimientos de descuento registrados.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ===================================================== -->
+  <!-- AUDITORÍA -->
+  <!-- ===================================================== -->
+
+  @if (!loading && activeTab === 'audit' && currentUser()?.role == 1) {
+
+    @if (sectionState.audit === 'unavailable') {
+      <div class="alert alert-info text-center">
+        La consulta de auditoría aún no está disponible.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-primary" (click)="loadAudit()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else if (sectionState.audit === 'error') {
+      <div class="alert alert-danger text-center">
+        No fue posible cargar los registros de auditoría.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-danger" (click)="loadAudit()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else {
+
+      <!-- Filtros -->
+      <div class="row mb-3 g-2">
+        <div class="col-auto">
+          <select
+            class="form-select form-select-sm"
+            [(ngModel)]="auditTable"
+            (change)="loadAudit()">
+
+            <option value="">Todas las tablas</option>
+            <option value="clientes">Clientes</option>
+            <option value="insumos">Insumos</option>
+            <option value="usuarios">Usuarios</option>
+            <option value="auditoriaRespaldos">Respaldos</option>
+          </select>
+        </div>
+
+        <div class="col-auto">
+          <select
+            class="form-select form-select-sm"
+            [(ngModel)]="auditOp"
+            (change)="loadAudit()">
+
+            <option value="">Todas las operaciones</option>
+            <option value="INSERT">INSERT</option>
+            <option value="UPDATE">UPDATE</option>
+            <option value="DELETE">DELETE</option>
+            <option value="BACKUP">BACKUP</option>
+            <option value="BACKUP_ERROR">BACKUP_ERROR</option>
+          </select>
+        </div>
+
+        <div class="col-auto">
+          <button class="btn btn-sm btn-outline-primary" (click)="loadAudit()">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla auditoría -->
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Fecha</th>
+              <th>Tabla auditada</th>
+              <th>Registro</th>
+              <th>Operación</th>
+              <th>Usuario</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of audit; track row.audit_table + '-' + row.audit_id) {
+              <tr>
+                <td>
+                  {{ row.date_time | date: 'dd/MM/yyyy HH:mm' }}
+                </td>
+
+                <td>
+                  {{ row.affected_table }}
+                </td>
+
+                <td>
+                  {{ row.record_id }}
+                </td>
+
+                <td>
+                  <span class="badge"
+                    [ngClass]="getAuditOperationClass(row.operation)">
+                    {{ row.operation }}
+                  </span>
+                </td>
+
+                <td>
+                  {{ getAuditUser(row) }}
+                </td>
+
+                <td
+                  class="small text-truncate"
+                  style="max-width: 300px"
+                  [title]="formatAuditDetail(row)">
+                  {{ formatAuditDetail(row) }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  Aún no hay registros de auditoría.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  <!-- ===================================================== -->
+  <!-- RESPALDOS -->
+  <!-- ===================================================== -->
+
+  @if (!loading && activeTab === 'backup' && currentUser()?.role == 1) {
+
+    @if (sectionState.backup === 'unavailable') {
+      <div class="alert alert-info text-center">
+        El módulo de respaldos aún no está disponible.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-primary" (click)="loadBackups()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else if (sectionState.backup === 'error') {
+      <div class="alert alert-danger text-center">
+        No fue posible cargar el historial de respaldos.
+
+        <div class="mt-2">
+          <button class="btn btn-sm btn-outline-danger" (click)="loadBackups()">
+            Reintentar
+          </button>
+        </div>
+      </div>
+
+    } @else {
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="mb-0">Historial de respaldos de la base de datos</p>
+
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-outline-primary"
+            (click)="loadBackups()">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+
+          <button
+            class="btn btn-primary"
+            (click)="createBackup()"
+            [disabled]="loading">
+
+            <i class="fa-solid fa-database me-1"></i>
+            Crear Respaldo Ahora
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Fecha</th>
+              <th>Archivo</th>
+              <th>Ruta</th>
+              <th>Estado</th>
+              <th>Usuario</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (b of backups; track b.audit_id) {
+              <tr>
+                <td>
+                  {{ b.created_at | date: 'dd/MM/yyyy HH:mm' }}
+                </td>
+
+                <td class="small">
+                  {{ b.file_name }}
+                </td>
+
+                <td class="small text-truncate" style="max-width: 220px" [title]="b.path">
+                  {{ b.path }}
+                </td>
+
+                <td>
+                  <span class="badge"
+                    [ngClass]="isBackupSuccessful(b) ? 'bg-success' : 'bg-danger'">
+                    {{ getBackupStatus(b) }}
+                  </span>
+                </td>
+
+                <td>
+                  {{ getBackupUser(b) }}
+                </td>
+
+                <td class="small">
+                  {{ b.details ?? '—' }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                  Aún no hay respaldos registrados.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+</div>

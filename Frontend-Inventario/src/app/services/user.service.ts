@@ -1,52 +1,86 @@
+
 import { Injectable } from '@angular/core';
 import { enviroment } from '../enviroments';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { User } from '../models/user';
 
 @Injectable({ providedIn: 'root' })
 export class UserService {
+
   private url: string;
-  private headers: any;
-  private token: any;
+  private headers: HttpHeaders;
+
   constructor(private _http: HttpClient) {
     this.url = enviroment.apiUrl;
-    this.token = sessionStorage.getItem('token');
-    this.headers = new HttpHeaders()
-      .set('Content-Type', 'application/json')
-      .set('Authorization', `Bearer ${this.token}`);
+    this.headers = new HttpHeaders().set(
+      'Content-Type',
+      'application/json',
+    );
   }
 
-  getRoles(): Observable<any> {
-    return this._http.get(this.url + 'roles', { headers: this.headers });
+  // ========================= USUARIOS =========================
+
+  getUsers(): Observable<any> {
+    return this._http.get(
+      this.url + 'users',
+      { headers: this.headers },
+    );
   }
 
-  createUser(user: User): Observable<any> {
-    let data = JSON.stringify(user);
-    return this._http.post(this.url + 'register', data, { headers: this.headers });
+  getUser(user_id: number): Observable<any> {
+    return this._http.get(
+      this.url + 'users/' + user_id,
+      { headers: this.headers },
+    );
   }
 
-  getProfile(): Observable<any> {
-    return this._http.get(this.url + 'profile', { headers: this.headers });
+  createUser(user: any): Observable<any> {
+    return this._http.post(
+      this.url + 'users',
+      user,
+      { headers: this.headers },
+    );
   }
 
-  // Perfil: { name, email, current_password?, new_password? }
+  // Actualizar usuario administrativamente.
   updateUser(user: any): Observable<any> {
-    return this._http.put(this.url + 'profile', user, { headers: this.headers });
+    return this._http.put(
+      this.url + 'users',
+      user,
+      { headers: this.headers },
+    );
   }
 
-  getAllUsers(): Observable<any> {
-    return this._http.get(this.url + 'users', { headers: this.headers });
+  deleteUser(user_id: number): Observable<any> {
+    return this._http.delete(
+      this.url + 'users/' + user_id,
+      { headers: this.headers },
+    );
   }
 
-  getUserbyID(id: number): Observable<any> {
-    return this._http.get(this.url + 'users/' + id, { headers: this.headers });
+  // ========================= PERFIL PERSONAL =========================
+
+  // Obtener perfil del usuario autenticado.
+  getProfile(): Observable<any> {
+    return this._http.get(
+      this.url + 'profile',
+      { headers: this.headers },
+    );
   }
 
-  updateRole(user_id: number, role_id: number) {
-    return this._http.put(this.url + 'users/' + user_id + '/role/' + role_id, null, {
-      headers: this.headers,
-    });
-  }
+  // Actualizar perfil del usuario autenticado.
+  // La identidad del usuario se obtiene del token en el backend.
+  updateProfile(profile: {
+    name: string;
+    email: string;
+    current_password?: string;
+    new_password?: string;
+  }): Observable<any> {
 
+    return this._http.put(
+      this.url + 'profile',
+      profile,
+      { headers: this.headers },
+    );
+  }
 }

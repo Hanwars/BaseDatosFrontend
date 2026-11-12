@@ -1,4 +1,5 @@
-<!--Toast-->
+
+<!-- Toast -->
 @if (toast.show) {
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
     <div class="toast show text-white" [ngClass]="toast.typeClass">
@@ -7,7 +8,11 @@
           {{ toast.message }}
         </div>
 
-        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          (click)="toast.show = false"
+        ></button>
       </div>
     </div>
   </div>
@@ -16,103 +21,244 @@
 <div class="container mt-4 mb-4">
   <h3 class="text-center mb-4">Perfil de Usuario</h3>
 
-  @if (profile) {
+  <!-- Cargando perfil -->
+  @if (loadingProfile) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+
+      <p class="text-secondary mt-2">Cargando perfil...</p>
+    </div>
+  }
+
+  <!-- Perfil cargado -->
+  @else if (profile) {
     <div class="col-md-6 mx-auto">
       <form #profileForm="ngForm" (ngSubmit)="updateProfile()">
         <div class="card shadow-sm">
           <div class="card-body">
             <h5 class="card-title mb-3">Datos personales</h5>
 
+            <!-- Nombre -->
             <div class="mb-3">
               <label class="form-label">Nombre</label>
+
               <input
                 type="text"
                 class="form-control"
                 name="name"
                 required
+                minlength="3"
+                maxlength="300"
                 #name="ngModel"
-                pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+                pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ .'-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$"
                 [(ngModel)]="profile.name"
               />
-              @if (!name.valid && name.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (name.invalid && name.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (name.errors?.['required']) {
+                    El nombre es obligatorio.
+                  } @else if (name.errors?.['minlength']) {
+                    El nombre debe tener al menos 3 caracteres.
+                  } @else if (name.errors?.['maxlength']) {
+                    El nombre no puede superar los 300 caracteres.
+                  } @else if (name.errors?.['pattern']) {
+                    Formato inválido.
+                  }
+                </small>
               }
             </div>
 
+            <!-- Correo -->
             <div class="mb-3">
               <label class="form-label">Email</label>
+
               <input
-                type="text"
+                type="email"
                 class="form-control"
                 name="email"
                 required
+                minlength="6"
+                maxlength="150"
+                email
                 #email="ngModel"
-                pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"
                 [(ngModel)]="profile.email"
               />
-              @if (!email.valid && email.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (email.invalid && email.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (email.errors?.['required']) {
+                    El correo es obligatorio.
+                  } @else if (email.errors?.['minlength']) {
+                    El correo debe tener al menos 6 caracteres.
+                  } @else if (email.errors?.['maxlength']) {
+                    El correo no puede superar los 150 caracteres.
+                  } @else {
+                    Formato inválido.
+                  }
+                </small>
               }
-              <small class="text-secondary">Es el correo con el que inicias sesión.</small>
+
+              <small class="text-secondary">
+                Es el correo con el que inicias sesión.
+              </small>
             </div>
 
             <hr />
-            <h5 class="card-title mb-1">Cambiar contraseña</h5>
-            <p class="text-secondary small">Déjalo vacío si no quieres cambiarla.</p>
 
+            <!-- Cambio de contraseña -->
+            <h5 class="card-title mb-1">Cambiar contraseña</h5>
+
+            <p class="text-secondary small">
+              Déjalos vacíos si no quieres cambiar tu contraseña.
+            </p>
+
+            <!-- Contraseña actual -->
             <div class="mb-3">
               <label class="form-label">Contraseña actual</label>
+
               <input
                 type="password"
                 class="form-control"
                 name="current_password"
                 [required]="wantsPasswordChange"
-                #current_password="ngModel"
+                maxlength="100"
+                #currentPassword="ngModel"
+                autocomplete="current-password"
                 [(ngModel)]="profile.current_password"
               />
-              @if (!current_password.valid && current_password.touched) {
+
+              @if (wantsPasswordChange && currentPassword.invalid && currentPassword.touched) {
                 <small class="invalid-feedback d-block">
-                  Escribe tu contraseña actual para cambiarla.
+                  @if (currentPassword.errors?.['required']) {
+                    Escribe tu contraseña actual.
+                  } @else if (currentPassword.errors?.['maxlength']) {
+                    La contraseña no puede superar los 100 caracteres.
+                  }
                 </small>
               }
             </div>
 
+            <!-- Nueva contraseña -->
             <div class="mb-3">
               <label class="form-label">Nueva contraseña</label>
+
               <input
                 type="password"
                 class="form-control"
                 name="new_password"
+                [required]="wantsPasswordChange"
+                minlength="8"
+                maxlength="100"
+                #newPassword="ngModel"
+                autocomplete="new-password"
                 [(ngModel)]="profile.new_password"
               />
+
+              @if (wantsPasswordChange && newPassword.invalid && newPassword.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (newPassword.errors?.['required']) {
+                    Escribe la nueva contraseña.
+                  } @else if (newPassword.errors?.['minlength']) {
+                    La contraseña debe tener al menos 8 caracteres.
+                  } @else if (newPassword.errors?.['maxlength']) {
+                    La contraseña no puede superar los 100 caracteres.
+                  }
+                </small>
+              }
             </div>
 
+            <!-- Confirmar contraseña -->
             <div class="mb-3">
               <label class="form-label">Confirmar nueva contraseña</label>
+
               <input
                 type="password"
                 class="form-control"
                 name="confirm_password"
-                [class.is-invalid]="passwordsMismatch"
+                [required]="wantsPasswordChange"
+                maxlength="100"
+                [class.is-invalid]="
+                  (wantsPasswordChange && confirmPassword.invalid && confirmPassword.touched) ||
+                  passwordsMismatch
+                "
+                #confirmPassword="ngModel"
+                autocomplete="new-password"
                 [(ngModel)]="profile.confirm_password"
               />
-              @if (passwordsMismatch) {
-                <small class="invalid-feedback d-block"> Las contraseñas no coinciden. </small>
+
+              @if (wantsPasswordChange && confirmPassword.invalid && confirmPassword.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (confirmPassword.errors?.['required']) {
+                    Confirma tu nueva contraseña.
+                  } @else if (confirmPassword.errors?.['maxlength']) {
+                    La contraseña no puede superar los 100 caracteres.
+                  }
+                </small>
+              } @else if (passwordsMismatch) {
+                <small class="invalid-feedback d-block">
+                  Las contraseñas no coinciden.
+                </small>
               }
             </div>
+
+            <!-- Aviso de cambio de contraseña -->
+            @if (wantsPasswordChange) {
+              <div class="alert alert-info py-2 small mb-0">
+                <i class="fa-solid fa-info-circle me-1"></i>
+                Para cambiar tu contraseña debes proporcionar la actual,
+                escribir una nueva de al menos 8 caracteres y confirmarla.
+              </div>
+            }
           </div>
 
+          <!-- Botón guardar -->
           <div class="card-footer d-flex justify-content-end">
             <button
               type="submit"
               class="btn btn-primary"
-              [disabled]="profileForm.invalid || passwordsMismatch"
+              [disabled]="
+                profileForm.invalid ||
+                passwordFieldsIncomplete ||
+                passwordsMismatch ||
+                saving
+              "
             >
-              Guardar cambios
+              @if (saving) {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                Guardando...
+              } @else {
+                <i class="fa-solid fa-floppy-disk me-1"></i>
+                Guardar cambios
+              }
             </button>
           </div>
         </div>
       </form>
+    </div>
+  }
+
+  <!-- Error al cargar perfil -->
+  @else {
+    <div class="col-md-6 mx-auto">
+      <div class="alert alert-danger text-center">
+        <i class="fa-solid fa-circle-exclamation me-2"></i>
+        No fue posible cargar tu perfil.
+
+        <div class="mt-3">
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            (click)="getProfile()"
+          >
+            <i class="fa-solid fa-rotate me-1"></i>
+            Reintentar
+          </button>
+        </div>
+      </div>
     </div>
   }
 </div>

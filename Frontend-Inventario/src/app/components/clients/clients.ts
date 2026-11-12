@@ -1,3 +1,4 @@
+
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ClientService } from '../../services/client.service';
@@ -26,6 +27,9 @@ export class Clients {
     typeClass: 'bg-success',
   };
 
+  public search: string = '';
+  public currentUser;
+
   constructor(
     private _clientService: ClientService,
     private cdr: ChangeDetectorRef,
@@ -34,10 +38,10 @@ export class Clients {
     this.currentUser = this._auth.currentUser;
   }
 
-  public search: string = '';
-  public currentUser;
-
-  showToast(message: string, type: 'success' | 'danger' | 'info' | 'warning' = 'success') {
+  showToast(
+    message: string,
+    type: 'success' | 'danger' | 'info' | 'warning' = 'success'
+  ) {
     this.toast.message = message;
     this.toast.typeClass = `bg-${type}`;
     this.toast.show = true;
@@ -49,10 +53,17 @@ export class Clients {
     }, 5000);
   }
 
-  // Muestra el mensaje del backend (por ejemplo, el RAISERROR del procedimiento).
+  // Muestra el mensaje del backend.
   showError(message: string, err: any) {
     console.error(message, err);
-    this.showToast(`${message}: ${err?.error?.error || err?.error?.message || err?.message}`, 'danger');
+
+    const errorMessage =
+      err?.error?.error ||
+      err?.error?.message ||
+      err?.message ||
+      'Error desconocido';
+
+    this.showToast(`${message}: ${errorMessage}`, 'danger');
   }
 
   ngOnInit() {
@@ -71,8 +82,34 @@ export class Clients {
     });
   }
 
+  // Prepara los datos antes de enviarlos al backend.
+  private prepareClientPayload(client: any) {
+    const phone = Number(client.contact_phone);
+
+    if (
+      !Number.isInteger(phone) ||
+      phone <= 0 ||
+      phone > 99999999
+    ) {
+      this.showToast(
+        'El teléfono debe ser un número positivo de máximo 8 dígitos.',
+        'warning'
+      );
+      return null;
+    }
+
+    return {
+      ...client,
+      contact_phone: phone,
+    };
+  }
+
   createClient(client: any) {
-    this._clientService.createClient(client).subscribe({
+    const payload = this.prepareClientPayload(client);
+
+    if (!payload) return;
+
+    this._clientService.createClient(payload).subscribe({
       next: (response: any) => {
         this.getClients();
         this.closeModal();
@@ -85,7 +122,11 @@ export class Clients {
   }
 
   updateClient(client: any) {
-    this._clientService.updateClient(client).subscribe({
+    const payload = this.prepareClientPayload(client);
+
+    if (!payload) return;
+
+    this._clientService.updateClient(payload).subscribe({
       next: (response: any) => {
         this.getClients();
         this.closeModal();
@@ -98,18 +139,18 @@ export class Clients {
   }
 
   confirmDelete(client_id: number) {
+    if (!client_id) return;
+
     this._clientService.deleteClient(client_id).subscribe({
       next: (response: any) => {
         this.getClients();
-        this.closeModal();
-        this.showToast('Cliente eliminado correctamente', 'danger');
+        this.closeDeleteModal();
+        this.showToast('Cliente eliminado correctamente', 'success');
       },
       error: (err) => {
         this.showError('Error al eliminar cliente', err);
       },
     });
-
-    this.closeDeleteModal();
   }
 
   openModal(client: any) {

@@ -1,3 +1,4 @@
+
 <!--Toast-->
 @if (toast.show) {
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
@@ -7,7 +8,11 @@
           {{ toast.message }}
         </div>
 
-        <button class="btn-close btn-close-white me-2 m-auto" (click)="toast.show = false"></button>
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          (click)="toast.show = false"
+        ></button>
       </div>
     </div>
   </div>
@@ -24,18 +29,21 @@
         class="form-control"
         placeholder="Buscar proveedores..."
         [value]="search"
-        (input)="search = $event.target.value"
+        (input)="search = $any($event.target).value"
       />
     </div>
   </div>
+
   @if (currentUser()?.role == 1) {
     <div class="d-flex justify-content-end">
-      <button class="btn btn-success" (click)="openModal(null)">
+      <button type="button" class="btn btn-success" (click)="openModal(null)">
         <i class="fa-solid fa-plus"></i>
       </button>
     </div>
   }
+
   <p>Total proveedores: {{ suppliers.length }}</p>
+
   <table class="table table-bordered table-hover">
     <thead class="table-dark">
       <tr>
@@ -46,6 +54,7 @@
         <th>Contacto</th>
         <th>Contacto Telefono</th>
         <th>Contacto Email</th>
+
         @if (currentUser()?.role == 1) {
           <th class="pe-0 me-2 actions-col">Acciones</th>
         }
@@ -53,10 +62,21 @@
     </thead>
 
     <tbody>
+      @if (suppliers.length === 0) {
+        <tr>
+          <td
+            [attr.colspan]="currentUser()?.role == 1 ? 8 : 7"
+            class="text-center"
+          >
+            Aún no hay proveedores registrados.
+          </td>
+        </tr>
+      }
+
       @for (supplier of suppliers; track supplier.supplier_id) {
         @if (
           search === '' ||
-          supplier.supplier_id?.toString().toLowerCase() === search ||
+          supplier.supplier_id?.toString().toLowerCase().includes(search.toLowerCase()) ||
           supplier.company_name?.toLowerCase().includes(search.toLowerCase()) ||
           supplier.company_phone?.toString().toLowerCase().includes(search.toLowerCase()) ||
           supplier.company_email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -73,13 +93,22 @@
             <td>{{ supplier.contact_name || 'No disponible' }}</td>
             <td>{{ supplier.contact_phone || 'No disponible' }}</td>
             <td>{{ supplier.contact_email || 'No disponible' }}</td>
+
             @if (currentUser()?.role == 1) {
               <td class="pe-0 me-2 actions-col">
-                <button class="btn btn-warning btn-sm me-2" (click)="openModal(supplier)">
+                <button
+                  type="button"
+                  class="btn btn-warning btn-sm me-2"
+                  (click)="openModal(supplier)"
+                >
                   <i class="fa-solid fa-pen-to-square"></i>
                 </button>
 
-                <button class="btn btn-danger btn-sm" (click)="openDeleteModal(supplier)">
+                <button
+                  type="button"
+                  class="btn btn-danger btn-sm"
+                  (click)="openDeleteModal(supplier)"
+                >
                   <i class="fa-solid fa-trash text-white"></i>
                 </button>
               </td>
@@ -105,117 +134,203 @@
       >
         <div class="modal-header">
           <h5 class="modal-title">
-            {{ selectedSupplier?.supplier_id ? 'Editar Proveedor' : 'Nueva Proveedor' }}
+            {{ selectedSupplier?.supplier_id ? 'Editar Proveedor' : 'Nuevo proveedor' }}
           </h5>
 
-          <button type="button" class="btn-close" (click)="closeModal()"></button>
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeModal()"
+          ></button>
         </div>
 
         <div class="modal-body">
           <div class="row">
+
+            <!-- Empresa -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Empresa</label>
+
               <input
                 type="text"
                 class="form-control"
                 name="company_name"
                 required
+                minlength="3"
+                maxlength="300"
                 #company_name="ngModel"
-                pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+                pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+(?:[ .,'&()/-]+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+)*$"
                 [(ngModel)]="selectedSupplier.company_name"
               />
 
-              @if (!company_name.valid && company_name.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              @if (company_name.invalid && company_name.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (company_name.errors?.['required']) {
+                    Este campo es obligatorio.
+                  } @else if (company_name.errors?.['minlength']) {
+                    Debe contener al menos 3 caracteres.
+                  } @else if (company_name.errors?.['maxlength']) {
+                    No puede superar los 300 caracteres.
+                  } @else if (company_name.errors?.['pattern']) {
+                    Formato inválido.
+                  }
+                </small>
               }
             </div>
 
+            <!-- Contacto -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Contacto (opcional)</label>
+
               <input
                 type="text"
                 class="form-control"
                 name="contact_name"
+                minlength="3"
+                maxlength="300"
                 #contact_name="ngModel"
-                pattern="^(?=.*[a-z])(?=.*[A-Z]).{3,}$"
+                pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ .'-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$"
                 [(ngModel)]="selectedSupplier.contact_name"
               />
 
-              @if (!contact_name.valid && contact_name.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+              @if (contact_name.invalid && contact_name.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (contact_name.errors?.['minlength']) {
+                    Debe contener al menos 3 caracteres.
+                  } @else if (contact_name.errors?.['maxlength']) {
+                    No puede superar los 300 caracteres.
+                  } @else if (contact_name.errors?.['pattern']) {
+                    Formato inválido.
+                  }
+                </small>
               }
             </div>
 
+            <!-- Empresa Telefono -->
             <div class="col-md-6 mb-3">
-              <label class="form-label">Empresa Telefono</label>
+              <label class="form-label">Empresa Teléfono</label>
+
               <input
-                type="number"
+                type="text"
+                inputmode="numeric"
                 class="form-control"
                 name="company_phone"
+                maxlength="8"
                 #company_phone="ngModel"
-                pattern="^\+?[1-9]\d{1,14}$"
+                pattern="^[0-9]{1,8}$"
                 [(ngModel)]="selectedSupplier.company_phone"
               />
-              @if (!company_phone.valid && company_phone.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (company_phone.invalid && company_phone.touched) {
+                <small class="invalid-feedback d-block">
+                  Formato inválido. Ingrese únicamente números (máximo 8 dígitos).
+                </small>
               }
             </div>
 
+            <!-- Contacto Telefono -->
             <div class="col-md-6 mb-3">
-              <label class="form-label">Contacto Telefono (opcional)</label>
+              <label class="form-label">Contacto Teléfono (opcional)</label>
+
               <input
-                type="number"
+                type="text"
+                inputmode="numeric"
                 class="form-control"
                 name="contact_phone"
+                maxlength="8"
                 #contact_phone="ngModel"
-                pattern="^\+?[1-9]\d{1,14}$"
+                pattern="^[0-9]{1,8}$"
                 [(ngModel)]="selectedSupplier.contact_phone"
               />
-              @if (!contact_phone.valid && contact_phone.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (contact_phone.invalid && contact_phone.touched) {
+                <small class="invalid-feedback d-block">
+                  Formato inválido. Ingrese únicamente números (máximo 8 dígitos).
+                </small>
               }
             </div>
 
+            <!-- Empresa Email -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Empresa Email</label>
+
               <input
-                type="text"
+                type="email"
                 class="form-control"
                 name="company_email"
+                minlength="6"
+                maxlength="254"
                 #company_email="ngModel"
-                pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"
                 [(ngModel)]="selectedSupplier.company_email"
               />
-              @if (!company_email.valid && company_email.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (company_email.invalid && company_email.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (company_email.errors?.['minlength']) {
+                    El correo debe contener al menos 6 caracteres.
+                  } @else if (company_email.errors?.['maxlength']) {
+                    El correo no puede superar los 254 caracteres.
+                  } @else {
+                    Formato inválido.
+                  }
+                </small>
               }
             </div>
 
+            <!-- Contacto Email -->
             <div class="col-md-6 mb-3">
               <label class="form-label">Contacto Email (opcional)</label>
+
               <input
-                type="text"
+                type="email"
                 class="form-control"
                 name="contact_email"
+                minlength="6"
+                maxlength="254"
                 #contact_email="ngModel"
-                pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"
                 [(ngModel)]="selectedSupplier.contact_email"
               />
-              @if (!contact_email.valid && contact_email.touched) {
-                <small class="invalid-feedback d-block"> Formato invalido! </small>
+
+              @if (contact_email.invalid && contact_email.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (contact_email.errors?.['minlength']) {
+                    El correo debe contener al menos 6 caracteres.
+                  } @else if (contact_email.errors?.['maxlength']) {
+                    El correo no puede superar los 254 caracteres.
+                  } @else {
+                    Formato inválido.
+                  }
+                </small>
               }
             </div>
+
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="closeModal()"
+            >
+              Cancelar
+            </button>
 
             @if (selectedSupplier?.supplier_id) {
-              <button type="submit" class="btn btn-primary" [disabled]="supplierForm.invalid">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="supplierForm.invalid"
+              >
                 Editar
               </button>
             } @else {
-              <button type="submit" class="btn btn-primary" [disabled]="supplierForm.invalid">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="supplierForm.invalid"
+              >
                 Guardar
               </button>
             }
@@ -233,22 +348,39 @@
       <div class="modal-content">
         <div class="modal-header bg-danger text-white">
           <h5 class="modal-title">Confirmar eliminación</h5>
-          <button class="btn-close btn-close-white" (click)="closeDeleteModal()"></button>
+
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            (click)="closeDeleteModal()"
+          ></button>
         </div>
 
         <div class="modal-body">
           <p>
             ¿Seguro que quieres eliminar el proveedor
-            <strong>{{ supplierToDelete?.company_name }}</strong
-            >?
+            <strong>{{ supplierToDelete?.company_name }}</strong>?
           </p>
-          <p class="text-danger mb-0">Esta acción no se puede deshacer.</p>
+
+          <p class="text-danger mb-0">
+            Esta acción no se puede deshacer.
+          </p>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDeleteModal()">Cancelar</button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDeleteModal()"
+          >
+            Cancelar
+          </button>
 
-          <button class="btn btn-danger" (click)="confirmDelete(supplierToDelete.supplier_id)">
+          <button
+            type="button"
+            class="btn btn-danger"
+            (click)="confirmDelete(supplierToDelete.supplier_id)"
+          >
             Eliminar
           </button>
         </div>

@@ -7,19 +7,15 @@ import { Client } from '../models/client';
 @Injectable({ providedIn: 'root' })
 export class ClientService {
   private url: string;
-  private headers: any;
-  private token: any;
+  private headers: HttpHeaders;
+
   constructor(private _http: HttpClient) {
     this.url = enviroment.apiUrl;
-    this.token = sessionStorage.getItem('token');
-    this.headers = new HttpHeaders()
-      .set('Content-Type', 'application/json')
-      .set('Authorization', `Bearer ${this.token}`);
+    this.headers = new HttpHeaders().set('Content-Type', 'application/json');
   }
 
   createClient(client: Client): Observable<any> {
-    let data = JSON.stringify(client);
-    return this._http.post(this.url + 'clients', data, { headers: this.headers });
+    return this._http.post(this.url + 'clients', client, { headers: this.headers });
   }
 
   getClients(): Observable<any> {

@@ -1,0 +1,340 @@
+
+<!-- Toast -->
+@if (toast.show) {
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999">
+    <div class="toast show text-white" [ngClass]="toast.typeClass">
+      <div class="d-flex">
+        <div class="toast-body">
+          {{ toast.message }}
+        </div>
+
+        <button
+          type="button"
+          class="btn-close btn-close-white me-2 m-auto"
+          (click)="toast.show = false"
+        ></button>
+      </div>
+    </div>
+  </div>
+}
+
+<div class="container mt-4 mb-4">
+  <h3 class="text-center mb-4">Administración de Usuarios</h3>
+
+  <!-- Buscador -->
+  <div class="row mb-3">
+    <div class="col-md-6 mx-auto">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Buscar usuarios..."
+        [(ngModel)]="search"
+      />
+    </div>
+  </div>
+
+  <!-- Nuevo usuario -->
+  <div class="d-flex justify-content-end mb-2">
+    <button
+      type="button"
+      class="btn btn-success"
+      (click)="openModal()"
+    >
+      <i class="fa-solid fa-plus me-1"></i>
+      Nuevo Usuario
+    </button>
+  </div>
+
+  <p class="text-muted">Total: {{ users.length }}</p>
+
+  <!-- Tabla -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover table-sm align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Rol</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @if (users.length === 0) {
+          <tr>
+            <td colspan="5" class="text-center">
+              Aún no hay usuarios registrados.
+            </td>
+          </tr>
+        } @else {
+          @for (u of users; track u.user_id) {
+            @if (
+              search === '' ||
+              u.user_id?.toString().includes(search) ||
+              (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
+              (u.email || '').toLowerCase().includes(search.toLowerCase())
+            ) {
+              <tr>
+                <td>{{ u.user_id }}</td>
+                <td>{{ u.name }}</td>
+                <td>{{ u.email || '—' }}</td>
+                <td>{{ roleName(u.role_id) }}</td>
+
+                <td class="text-center text-nowrap">
+                  <button
+                    type="button"
+                    class="btn btn-warning btn-sm me-1"
+                    (click)="openModal(u)"
+                  >
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-danger btn-sm"
+                    (click)="openDeleteModal(u)"
+                    [disabled]="isCurrentUser(u.user_id)"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Crear y Editar -->
+@if (isModalOpen) {
+  <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+    <div class="modal-dialog">
+      <div class="modal-content">
+
+        <form #userForm="ngForm" (ngSubmit)="saveUser()">
+
+          <div class="modal-header">
+            <h5 class="modal-title">
+              {{ selectedUser?.user_id ? 'Editar Usuario' : 'Nuevo Usuario' }}
+            </h5>
+
+            <button
+              type="button"
+              class="btn-close"
+              (click)="closeModal()"
+            ></button>
+          </div>
+
+          <div class="modal-body">
+
+            <!-- Nombre -->
+            <div class="mb-3">
+              <label class="form-label">Nombre</label>
+
+              <input
+                type="text"
+                class="form-control"
+                name="name"
+                required
+                minlength="3"
+                maxlength="300"
+                #name="ngModel"
+                pattern="^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ .'-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$"
+                [(ngModel)]="selectedUser.name"
+              />
+
+              @if (name.invalid && name.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (name.errors?.['required']) {
+                    El nombre es obligatorio.
+                  } @else if (name.errors?.['minlength']) {
+                    El nombre debe tener al menos 3 caracteres.
+                  } @else if (name.errors?.['maxlength']) {
+                    El nombre no puede superar los 300 caracteres.
+                  } @else if (name.errors?.['pattern']) {
+                    Formato inválido.
+                  }
+                </small>
+              }
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+
+              <input
+                type="email"
+                class="form-control"
+                name="email"
+                required
+                minlength="6"
+                maxlength="150"
+                email
+                #email="ngModel"
+                pattern="^[^\s@]+@[^\s@]+\.[^\s@]{2,}$"
+                autocomplete="email"
+                [(ngModel)]="selectedUser.email"
+              />
+
+              @if (email.invalid && email.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (email.errors?.['required']) {
+                    El correo es obligatorio.
+                  } @else if (email.errors?.['minlength']) {
+                    El correo debe tener al menos 6 caracteres.
+                  } @else if (email.errors?.['maxlength']) {
+                    El correo no puede superar los 150 caracteres.
+                  } @else {
+                    Formato inválido.
+                  }
+                </small>
+              }
+            </div>
+
+            <!-- Rol -->
+            <div class="mb-3">
+              <label class="form-label">Rol</label>
+
+              <select
+                class="form-select"
+                name="role_id"
+                required
+                #role="ngModel"
+                [(ngModel)]="selectedUser.role_id"
+                [disabled]="isEditingOwnAccount"
+              >
+                <option [ngValue]="null" disabled hidden>
+                  Seleccione un rol
+                </option>
+
+                @for (r of roles; track r.role_id) {
+                  <option [ngValue]="r.role_id">
+                    {{ r.name }}
+                  </option>
+                }
+              </select>
+
+              @if (role.invalid && role.touched) {
+                <small class="invalid-feedback d-block">
+                  Debes seleccionar un rol.
+                </small>
+              }
+
+              @if (isEditingOwnAccount) {
+                <small class="text-secondary">
+                  No puedes cambiar el rol de tu propia cuenta.
+                </small>
+              }
+            </div>
+
+            <!-- Contraseña -->
+            <div class="mb-3">
+              <label class="form-label">
+                Contraseña
+                {{ selectedUser?.user_id ? '(dejar vacío para no cambiar)' : '' }}
+              </label>
+
+              <input
+                type="password"
+                class="form-control"
+                name="password"
+                [required]="!selectedUser?.user_id"
+                minlength="8"
+                maxlength="100"
+                #password="ngModel"
+                autocomplete="new-password"
+                [(ngModel)]="selectedUser.password"
+              />
+
+              @if (password.invalid && password.touched) {
+                <small class="invalid-feedback d-block">
+                  @if (password.errors?.['required']) {
+                    La contraseña es obligatoria.
+                  } @else if (password.errors?.['minlength']) {
+                    La contraseña debe tener al menos 8 caracteres.
+                  } @else if (password.errors?.['maxlength']) {
+                    La contraseña no puede superar los 100 caracteres.
+                  }
+                </small>
+              }
+
+              @if (selectedUser?.user_id) {
+                <small class="text-secondary">
+                  Si no deseas cambiar la contraseña, deja este campo vacío.
+                </small>
+              }
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              (click)="closeModal()"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="userForm.invalid"
+            >
+              Guardar
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Eliminar -->
+@if (isDeleteModalOpen) {
+  <div class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+    <div class="modal-dialog">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar eliminación</h5>
+
+          <button
+            type="button"
+            class="btn-close"
+            (click)="closeDeleteModal()"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          ¿Eliminar al usuario
+          <strong>{{ userToDelete?.name }}</strong>?
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDeleteModal()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-danger"
+            (click)="confirmDelete()"
+          >
+            Eliminar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+}
