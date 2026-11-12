@@ -26,7 +26,11 @@ server {
     #   API_UPSTREAM host[:puerto] del backend, sin esquema
     #   API_HOST     nombre de host que se envía en la cabecera Host (en Render debe ser el del backend)
     location /api/ {
-        proxy_pass ${API_SCHEME}://${API_UPSTREAM};
+        # El host se resuelve en cada petición (no al arrancar), así Nginx no se cae
+        # si el backend aún no existe o está dormido. Requiere nombre completo (FQDN).
+        resolver ${NGINX_LOCAL_RESOLVERS} valid=30s ipv6=off;
+        set $api_backend "${API_SCHEME}://${API_UPSTREAM}";
+        proxy_pass $api_backend;
         proxy_http_version 1.1;
         proxy_ssl_server_name on;
         proxy_ssl_name ${API_HOST};
