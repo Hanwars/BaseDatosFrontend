@@ -25,7 +25,7 @@ server {
     #   API_SCHEME   http (red interna) o https (URL pública, p. ej. Render)
     #   API_UPSTREAM host[:puerto] del backend, sin esquema
     #   API_HOST     nombre de host que se envía en la cabecera Host (en Render debe ser el del backend)
-    location /api/ {
+    location ^~ /api/ {
         # El host se resuelve en cada petición (no al arrancar), así Nginx no se cae
         # si el backend aún no existe o está dormido. Requiere nombre completo (FQDN).
         resolver ${NGINX_LOCAL_RESOLVERS} valid=30s ipv6=off;
