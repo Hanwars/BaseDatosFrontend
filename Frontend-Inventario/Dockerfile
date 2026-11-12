@@ -37,6 +37,10 @@ FROM nginx:1.28-alpine AS runtime
 
 # La imagen oficial procesa /etc/nginx/templates/*.template con envsubst al arrancar.
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Limpia API_UPSTREAM/API_HOST (quita https:// y "/" final); se sourcea antes de envsubst.
+COPY docker-entrypoint.d/05-clean-api.envsh /docker-entrypoint.d/05-clean-api.envsh
+RUN sed -i 's/\r$//' /docker-entrypoint.d/05-clean-api.envsh \
+    && chmod +x /docker-entrypoint.d/05-clean-api.envsh
 COPY --from=build /site/ /usr/share/nginx/html/
 
 # Valores por defecto (red interna tipo Northflank). En Render se sobreescriben:

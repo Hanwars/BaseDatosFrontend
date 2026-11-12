@@ -1,0 +1,13 @@
+# Se ejecuta (source) antes de envsubst: normaliza API_UPSTREAM y API_HOST.
+# Quita "https://", "http://" y "/" final por si se pegó la URL completa.
+API_UPSTREAM="${API_UPSTREAM#https://}"
+API_UPSTREAM="${API_UPSTREAM#http://}"
+API_UPSTREAM="${API_UPSTREAM%/}"
+
+API_HOST="${API_HOST:-$API_UPSTREAM}"
+API_HOST="${API_HOST#https://}"
+API_HOST="${API_HOST#http://}"
+API_HOST="${API_HOST%/}"
+API_HOST="${API_HOST%%:*}"
+
+export API_UPSTREAM API_HOST
